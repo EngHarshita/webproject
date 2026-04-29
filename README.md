@@ -35,21 +35,20 @@ A real-time, fully responsive group chat application built with the MERN stack (
    npm start
    ```
 
-## Deployment Guide
+## Deployment Guide (Unified Railway Deployment)
 
-### Frontend Deployment (Vercel or Netlify)
-This project is pre-configured for seamless deployment of the frontend React application on Vercel or Netlify.
+This project has been optimized for a unified deployment on Platform-as-a-Service providers like **Railway**, **Render**, or **Heroku**. In production, the backend server automatically serves the built frontend React application, meaning you only need to deploy **one service** to host the entire full-stack app.
 
-1. Connect this GitHub repository to Vercel or Netlify.
-2. The root directory contains `vercel.json` and `netlify.toml` which automatically configure the build process to target the `client` folder.
-3. **Important:** After deploying your backend (see below), you must add the `REACT_APP_BACKEND_URL` Environment Variable in your Vercel/Netlify dashboard, pointing to your deployed backend API URL (e.g., `https://your-backend-api.onrender.com`).
-
-### Backend Deployment (Render, Heroku, or Railway)
-> ⚠️ **Important Limitation:** Vercel and Netlify use Serverless functions for their APIs, which **do not support persistent WebSockets (Socket.io)**. Because this chat app relies on Socket.io for real-time messaging and WebRTC signaling, the `server` directory must be deployed to a persistent Node.js host.
-
-1. Deploy the `server` directory to a service like [Render](https://render.com/), [Railway](https://railway.app/), or [Heroku](https://www.heroku.com/).
-2. Set the following Environment Variables on your backend hosting provider:
+### Deploying to Railway
+1. **Connect Repository:** Log into Railway and create a new project from this GitHub repository.
+2. **Automatic Build:** Railway will automatically detect the root `package.json`. It will run the `npm run build` script, which installs dependencies for both folders and builds the React frontend.
+3. **Automatic Start:** Railway will then run `npm start`, which starts the Express server.
+4. **Environment Variables:** In your Railway project settings, add the following Environment Variables:
    - `MONGO_URI`: Your MongoDB connection string.
    - `JWT_SECRET`: A secret string for authentication.
-   - `CLIENT_URL`: Set this to your Vercel/Netlify frontend URL (e.g., `https://your-frontend.vercel.app`). This is crucial to prevent CORS errors.
+   - `NODE_ENV`: Set to `production`.
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (if you want cloud file uploads).
+   - *(Note: You no longer need `CLIENT_URL` because the frontend and backend share the same domain!)*
+
+> [!TIP]
+> **Why this approach?** Deploying both the client and server together eliminates frustrating CORS errors and saves you money by using only a single container/dyno on your hosting provider.
