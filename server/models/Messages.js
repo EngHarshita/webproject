@@ -34,7 +34,11 @@ const messageSchema = mongoose.Schema({
     deletedBy: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    }]
+    }],
+    isPinned: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const Messages = mongoose.model('Message', messageSchema);

@@ -52,13 +52,22 @@ const getConversation = async (req, res) => {
         const conversationData = await Promise.all(conversations.map(async (conversation) => {
             const receiverId = conversation.members.find((member) => member.toString() !== userId);
             const user = await Users.findById(receiverId);
+            
+            // Fetch the last message for smart preview
+            const MessagesModel = require('../models/Messages');
+            const lastMessageObj = await MessagesModel.findOne({ conversationId: conversation._id })
+                                      .sort({ createdAt: -1 })
+                                      .select('message type createdAt');
+
             return {
                 user: {
                     receiverId: user?._id,
                     email: user?.email,
                     fullName: user?.fullName
                 },
-                conversationId: conversation._id
+                conversationId: conversation._id,
+                lastMessage: lastMessageObj ? (lastMessageObj.type === 'text' ? lastMessageObj.message : `[${lastMessageObj.type}]`) : 'No messages yet',
+                lastMessageTime: lastMessageObj ? lastMessageObj.createdAt : null
             };
         }));
 
@@ -83,7 +92,7 @@ const findConversation = async (req, res) => {
         });
 
         if (!conversation) {
-            return res.status(404).json({ message: 'Conversation not found' });
+            return res.status(404).json({ error: 'Conversation not found' });
         }
 
         res.status(200).json(conversation);

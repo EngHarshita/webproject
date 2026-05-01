@@ -87,10 +87,10 @@ const io = require('socket.io')(server, {
 // APIs
 
 // 1. Messages APIs
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', authenticateToken, upload.single('file'), (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).send('No file uploaded');
+            return res.status(400).json({ error: 'No file uploaded' });
         }
         
         let fileUrl;
@@ -109,11 +109,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         });
     } catch (error) {
         console.error('Error in POST /api/upload:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
-app.post('/api/message', async (req, res) => {
+app.post('/api/message', authenticateToken, async (req, res) => {
     try {
         const { conversationId, senderId, message, receiverId = '', type = 'text', fileUrl = '', fileName = '', location = null } = req.body;
         
@@ -122,16 +122,25 @@ app.post('/api/message', async (req, res) => {
         const finalReceiverId = receiverId || req.body.receiverID || '';
 
         if (!finalSenderId || (type === 'text' && !message) && type !== 'image' && type !== 'document' && type !== 'location') {
-            return res.status(400).send('Please fill all required fields');
+            return res.status(400).json({ error: 'Please fill all required fields' });
         }
 
         let cId = finalConversationId;
         if ((!finalConversationId || finalConversationId === 'new') && finalReceiverId) {
-            const newConversation = new Conversations({ members: [finalSenderId, finalReceiverId] });
-            const savedConvo = await newConversation.save();
-            cId = savedConvo._id;
+            // BUG FIX: Check if conversation already exists between the two users
+            const existingConversation = await Conversations.findOne({
+                members: { $all: [finalSenderId, finalReceiverId] }
+            });
+            
+            if (existingConversation) {
+                cId = existingConversation._id;
+            } else {
+                const newConversation = new Conversations({ members: [finalSenderId, finalReceiverId] });
+                const savedConvo = await newConversation.save();
+                cId = savedConvo._id;
+            }
         } else if (!finalConversationId || finalConversationId === 'new') {
-            return res.status(400).send('Please provide conversationId or receiverId');
+            return res.status(400).json({ error: 'Please provide conversationId or receiverId' });
         }
 
         const newMessage = new Messages({ conversationId: cId, senderId: finalSenderId, message, type, fileUrl, fileName, location });
@@ -139,27 +148,43 @@ app.post('/api/message', async (req, res) => {
         res.status(200).json({ message: 'Message sent successfully', conversationId: cId });
     } catch (error) {
         console.error('Error in POST /api/message:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
-app.post('/api/message/delete-for-me', async (req, res) => {
+app.post('/api/message/delete-for-me', authenticateToken, async (req, res) => {
     try {
         const { messageId, userId } = req.body;
-        if (!messageId || !userId) return res.status(400).send('Message ID and User ID are required');
+        if (!messageId || !userId) return res.status(400).json({ error: 'Message ID and User ID are required' });
 
         await Messages.findByIdAndUpdate(messageId, {
             $addToSet: { deletedBy: userId }
         });
 
-        res.status(200).send('Message deleted for you');
+        res.status(200).json({ message: 'Message deleted for you' });
     } catch (error) {
         console.error('Error in DELETE FOR ME:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
-app.get('/api/message/:conversationId', async (req, res) => {
+app.put('/api/message/pin/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const message = await Messages.findById(id);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+        
+        message.isPinned = !message.isPinned;
+        await message.save();
+        
+        res.status(200).json({ message: 'Message pin status updated', isPinned: message.isPinned });
+    } catch (error) {
+        console.error('Error in PUT /api/message/pin:', error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+app.get('/api/message/:conversationId', authenticateToken, async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { senderId } = req.query; // Who is asking?
@@ -186,12 +211,12 @@ app.get('/api/message/:conversationId', async (req, res) => {
         res.status(200).json(messageUserData);
     } catch (error) {
         console.error('Error in GET /api/message/:conversationId:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
 // 2. Users API
-app.get('/api/users/:userId', async (req, res) => {
+app.get('/api/users/:userId', authenticateToken, async (req, res) => {
     try {
         const userId = req.params.userId;
         const users = await Users.find({ _id: { $ne: userId } });
@@ -201,12 +226,12 @@ app.get('/api/users/:userId', async (req, res) => {
         res.status(200).json(usersData);
     } catch (error) {
         console.error('Error in GET /api/users/:userId:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
 // 3. Conversations API (Missing endpoint for frontend)
-app.get('/api/conversations/:userId', async (req, res) => {
+app.get('/api/conversations/:userId', authenticateToken, async (req, res) => {
     try {
         const { userId } = req.params;
         const conversations = await Conversations.find({ members: { $in: [userId] } });
@@ -225,7 +250,7 @@ app.get('/api/conversations/:userId', async (req, res) => {
         res.status(200).json(conversationData);
     } catch (error) {
         console.error('Error in GET /api/conversations/:userId:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
@@ -260,21 +285,22 @@ app.post('/api/register', async (req, res) => {
         const { fullName, email, password } = req.body;
 
         if (!fullName || !email || !password) {
-            return res.status(400).send('Please fill all required fields');
+            return res.status(400).json({ error: 'Please fill all required fields' });
         }
 
-        const isAlreadyExist = await Users.findOne({ email });
+        const sanitizedEmail = email.trim().toLowerCase();
+        const isAlreadyExist = await Users.findOne({ email: sanitizedEmail });
         if (isAlreadyExist) {
-            return res.status(400).send('User already exists');
+            return res.status(400).json({ error: 'User already exists' });
         }
 
         const hashedPassword = await bcryptjs.hash(password, 10);
-        const newUser = new Users({ fullName, email, password: hashedPassword });
+        const newUser = new Users({ fullName, email: sanitizedEmail, password: hashedPassword });
         await newUser.save();
-        res.status(200).send('User registered successfully');
+        res.status(200).json({ message: 'User registered successfully' });
     } catch (error) {
         console.error('Registration Error:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
@@ -283,24 +309,26 @@ app.post('/api/login', async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).send('Please fill all required fields');
+            return res.status(400).json({ error: 'Please fill all required fields' });
         }
 
-        const user = await Users.findOne({ email });
+        const sanitizedEmail = email.trim().toLowerCase();
+        const user = await Users.findOne({ email: sanitizedEmail });
+        
         if (!user) {
-            return res.status(400).send('Email or password incorrect');
+            return res.status(400).json({ error: 'Email or password incorrect' });
         }
 
         const isValid = await bcryptjs.compare(password, user.password);
         if (!isValid) {
-            return res.status(400).send('Email or password incorrect');
+            return res.status(400).json({ error: 'Email or password incorrect' });
         }
 
         const payload = { userId: user._id, email: user.email };
         const JWT_SECRET = process.env.JWT_SECRET || 'this_is_a_secret_key';
 
         jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' }, async (err, token) => {
-            if (err) return res.status(500).send('Error signing token');
+            if (err) return res.status(500).json({ error: 'Error signing token' });
             
             await Users.updateOne({ _id: user._id }, { $set: { token } });
             user.token = token;
@@ -316,7 +344,7 @@ app.post('/api/login', async (req, res) => {
         });
     } catch (error) {
         console.error('Login Error:', error);
-        res.status(500).send('Server Error');
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
@@ -328,12 +356,18 @@ io.on('connection', socket => {
 
     socket.on('addUser', userId => {
         if (userId) {
-            // Remove old socket if user reconnected
-            users = users.filter(user => user.userId !== userId);
-            const user = { userId, socketId: socket.id };
-            users.push(user);
-            console.log(`👤 User ${userId} registered with socket ${socket.id}`);
-            io.emit('getUsers', users);
+            // Join a personal room based on user ID for reliable delivery across multiple tabs
+            socket.join(userId);
+            
+            // Track active users
+            const existingUser = users.find(u => u.userId === userId);
+            if (!existingUser) {
+                users.push({ userId, socketId: socket.id });
+                io.emit('getUsers', users);
+            } else {
+                existingUser.socketId = socket.id;
+            }
+            console.log(`👤 User ${userId} registered with socket ${socket.id} (Joined Room: ${userId})`);
         }
     });
 
@@ -364,55 +398,52 @@ io.on('connection', socket => {
             createdAt: new Date()
         };
 
-        if (receiver) {
-            io.to(receiver.socketId).emit('getMessage', messageData);
-        }
-        if (sender) {
-            io.to(sender.socketId).emit('getMessage', messageData);
+        // Emit to the receiver's room
+        if (receiverId) {
+            socket.to(receiverId).emit('getMessage', messageData);
         }
     });
 
     // Typing Indicators
     socket.on('typing', ({ receiverId, senderId }) => {
-        const receiver = users.find(user => user.userId === receiverId);
-        if (receiver) {
-            io.to(receiver.socketId).emit('displayTyping', { senderId });
+        if (receiverId) {
+            socket.to(receiverId).emit('displayTyping', { senderId });
         }
     });
 
     socket.on('stopTyping', ({ receiverId, senderId }) => {
-        const receiver = users.find(user => user.userId === receiverId);
-        if (receiver) {
-            io.to(receiver.socketId).emit('hideTyping', { senderId });
+        if (receiverId) {
+            socket.to(receiverId).emit('hideTyping', { senderId });
         }
     });
 
     // WebRTC Signaling
     socket.on('callUser', ({ userToCall, signalData, from, name }) => {
-        const receiver = users.find(user => user.userId === userToCall);
-        if (receiver) {
-            io.to(receiver.socketId).emit('callUser', { signal: signalData, from, name });
+        if (userToCall) {
+            socket.to(userToCall).emit('callUser', { signal: signalData, from, name });
         }
     });
 
     socket.on('answerCall', (data) => {
-        const receiver = users.find(user => user.userId === data.to);
-        if (receiver) {
-            io.to(receiver.socketId).emit('callAccepted', data.signal);
+        if (data.to) {
+            socket.to(data.to).emit('callAccepted', data.signal);
         }
     });
 
     socket.on('endCall', ({ to }) => {
-        const receiver = users.find(user => user.userId === to);
-        if (receiver) {
-            io.to(receiver.socketId).emit('endCall');
+        if (to) {
+            socket.to(to).emit('endCall');
         }
     });
 
     socket.on('disconnect', () => {
         console.log('🔥 User disconnected:', socket.id);
-        users = users.filter(user => user.socketId !== socket.id);
-        io.emit('getUsers', users);
+        // Remove user from active tracking if they disconnect
+        const disconnectedUser = users.find(u => u.socketId === socket.id);
+        if (disconnectedUser) {
+            users = users.filter(user => user.socketId !== socket.id);
+            io.emit('getUsers', users);
+        }
     });
 });
 
