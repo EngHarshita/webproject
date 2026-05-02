@@ -1,0 +1,12 @@
+{
+  "name": "groupchat-root",
+  "version": "1.0.0",
+  "description": "Root package for building and deploying client and server together",
+  "scripts": {
+    "start": "cd server && npm start",
+    "install-server": "cd server && npm install",
+    "install-client": "cd client && npm install --legacy-peer-deps",
+    "build-client": "cd client && npm run build",
+    "build": "npm run install-server && npm run install-client && npm run build-client"
+  }
+}
