@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import Peer from 'simple-peer';
 import avatarDefault from '../../assets/3d-illustration-human-avatar-profile/avatar.jpg';
