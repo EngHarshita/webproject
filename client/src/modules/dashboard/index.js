@@ -592,7 +592,7 @@ const Dashboard = () => {
         <div className='w-screen flex h-screen bg-background dark:bg-gray-900 text-black dark:text-white transition-colors duration-300'>
             
             {/* LEFT SIDEBAR (CONVERSATIONS) */}
-            <div className={`fixed md:relative z-40 ${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-[80%] sm:w-[50%] md:w-1/3 lg:w-1/4 h-full bg-white dark:bg-gray-800 flex flex-col transition-transform duration-300 border-r dark:border-gray-700 shadow-xl md:shadow-sm`}>
+            <div className={`fixed inset-y-0 left-0 z-50 w-full sm:w-[350px] md:w-1/3 lg:w-1/4 bg-white dark:bg-gray-800 flex flex-col transform transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 border-r dark:border-gray-700 shadow-2xl md:shadow-none`}>
                 <div className='flex items-center px-6 md:px-10 py-6 md:py-8 justify-between'>
                     <div className='flex items-center'>
                         <div className='border-2 border-primary p-[2px] rounded-full shadow-sm'>
@@ -653,12 +653,15 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* OVERLAY FOR MOBILE SIDEBAR */}
+            {showSidebar && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowSidebar(false)}></div>}
+
             {/* CHAT SECTION */}
-            <div className='w-full md:w-2/3 lg:w-1/2 h-full flex flex-col items-center transition-colors duration-300 relative'>
+            <div className='flex-1 h-full flex flex-col items-center bg-gray-50 dark:bg-gray-900 transition-colors duration-300 relative overflow-hidden'>
                 {
                     messages?.receiver?.fullName ? (
                         <>
-                            <div className='w-[95%] md:w-[90%] bg-white dark:bg-gray-800 mt-4 md:mt-10 rounded-full flex items-center px-6 md:px-10 py-3 shadow-md border dark:border-gray-700 transition-colors duration-300 z-20'>
+                            <div className='w-full md:w-[95%] lg:w-[90%] bg-white/80 dark:bg-gray-800/80 backdrop-blur-md md:mt-6 rounded-none md:rounded-full flex items-center px-4 md:px-10 py-3 shadow-sm border-b md:border dark:border-gray-700 z-30 sticky top-0'>
                                 <button className='mr-4 md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-full' onClick={() => setShowSidebar(true)}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                                 </button>
@@ -679,7 +682,7 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <div className='flex-1 w-full overflow-y-auto px-10 py-6 custom-scrollbar'>
+                            <div className='flex-1 w-full overflow-y-auto px-4 md:px-10 py-6 custom-scrollbar space-y-4'>
                                 {
                                     isLoadingMessages ? (
                                         <div className='flex items-center justify-center h-full'>
@@ -737,7 +740,7 @@ const Dashboard = () => {
                                         };
 
                                         return (
-                                             <div key={index} ref={messageRef} className={`max-w-[60%] relative group/msg ${isMine ? 'bg-primary text-white ml-auto rounded-tl-2xl' : 'bg-white dark:bg-gray-800 border dark:border-gray-700 mr-auto rounded-tr-2xl'} ${isPinned ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 text-black dark:text-white' : ''} rounded-b-2xl p-4 mb-4 shadow-sm text-sm transition-all animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                                             <div key={index} ref={messageRef} className={`max-w-[85%] md:max-w-[70%] lg:max-w-[60%] relative group/msg ${isMine ? 'bg-primary text-white ml-auto rounded-tl-2xl' : 'bg-white dark:bg-gray-800 border dark:border-gray-700 mr-auto rounded-tr-2xl'} ${isPinned ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 text-black dark:text-white' : ''} rounded-b-2xl p-3 md:p-4 mb-2 shadow-sm text-sm transition-all animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                                  {isPinned && <div className="absolute -top-3 right-4 bg-yellow-400 rounded-full p-1 shadow-md z-10"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg></div>}
                                                  {renderContent()}
                                                  
@@ -794,7 +797,7 @@ const Dashboard = () => {
                                 }
                             </div>
 
-                            <div className='flex flex-col w-full bg-white dark:bg-gray-800 border-t dark:border-gray-700 shadow-lg relative'>
+                            <div className='w-full bg-white dark:bg-gray-800 border-t dark:border-gray-700 shadow-2xl relative z-30 pb-safe'>
                                 {previewFile && (
                                     <div className="absolute bottom-full left-0 w-full p-4 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between z-10">
                                         <div className="flex items-center gap-4">
@@ -834,7 +837,7 @@ const Dashboard = () => {
                                         ))}
                                     </div>
                                 )}
-                                <div className='p-6 w-full flex items-center gap-4 relative'>
+                                <div className='p-3 md:p-6 w-full flex items-center gap-2 md:gap-4 relative'>
                                     <input 
                                     type="file" 
                                     ref={fileInputRef} 

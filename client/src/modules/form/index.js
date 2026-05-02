@@ -77,7 +77,7 @@ const Form = ({
 
     return (
         <div className="bg-light dark:bg-gray-900 h-screen flex items-center justify-center transition-colors duration-300">
-        <div className="bg-gray-50 dark:bg-gray-800 w-[450px] shadow-lg rounded-lg flex flex-col justify-center items-center py-12 px-8 transition-colors duration-300">
+        <div className="bg-gray-50 dark:bg-gray-800 w-[90%] max-w-[450px] shadow-lg rounded-2xl flex flex-col justify-center items-center py-10 md:py-12 px-6 md:px-8 transition-colors duration-300">
             <div className="text-4xl font-extrabold text-black dark:text-white transition-colors duration-300 mb-2">Welcome {isSignedInPage && 'Back'}</div>
             <div className="text-xl font-light mb-8 dark:text-gray-400 transition-colors duration-300">{isSignedInPage ? 'Sign in now to get explored' : 'Sign up now to get started'}</div>
             {/* Inline error banner - no more freezing alert() dialogs */}
