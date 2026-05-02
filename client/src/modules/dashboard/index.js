@@ -152,6 +152,32 @@ const Dashboard = () => {
         };
     }, []);
 
+    const handleMessageReaction = useCallback(({ messageId, userId, emoji }) => {
+        setMessages(prev => {
+            if (!prev.messages) return prev;
+            return {
+                ...prev,
+                messages: prev.messages.map(msg => {
+                    if (msg._id === messageId) {
+                        const reactions = [...(msg.reactions || [])];
+                        const existingIndex = reactions.findIndex(r => (r.userId?.toString() === userId?.toString()) || (r.userId?._id?.toString() === userId?.toString()));
+                        if (existingIndex !== -1) {
+                            if (reactions[existingIndex].emoji === emoji) {
+                                reactions.splice(existingIndex, 1);
+                            } else {
+                                reactions[existingIndex].emoji = emoji;
+                            }
+                        } else {
+                            reactions.push({ userId, emoji });
+                        }
+                        return { ...msg, reactions };
+                    }
+                    return msg;
+                })
+            };
+        });
+    }, []);
+
     useEffect(() => {
         if (!socket) return;
         let id = userRef.current?.id?.toString() || userRef.current?._id?.toString();
@@ -211,32 +237,6 @@ const Dashboard = () => {
             setCaller(from);
             setCallerName(callerName);
             setCallerSignal(signal);
-        };
-
-        const handleMessageReaction = ({ messageId, userId, emoji }) => {
-            setMessages(prev => {
-                if (!prev.messages) return prev;
-                return {
-                    ...prev,
-                    messages: prev.messages.map(msg => {
-                        if (msg._id === messageId) {
-                            const reactions = [...(msg.reactions || [])];
-                            const existingIndex = reactions.findIndex(r => (r.userId?.toString() === userId?.toString()) || (r.userId?._id?.toString() === userId?.toString()));
-                            if (existingIndex !== -1) {
-                                if (reactions[existingIndex].emoji === emoji) {
-                                    reactions.splice(existingIndex, 1);
-                                } else {
-                                    reactions[existingIndex].emoji = emoji;
-                                }
-                            } else {
-                                reactions.push({ userId, emoji });
-                            }
-                            return { ...msg, reactions };
-                        }
-                        return msg;
-                    })
-                };
-            });
         };
 
         const handleEndCall = () => {
