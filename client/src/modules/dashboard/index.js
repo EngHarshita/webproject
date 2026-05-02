@@ -221,7 +221,7 @@ const Dashboard = () => {
                     messages: prev.messages.map(msg => {
                         if (msg._id === messageId) {
                             const reactions = [...(msg.reactions || [])];
-                            const existingIndex = reactions.findIndex(r => r.userId === userId);
+                            const existingIndex = reactions.findIndex(r => (r.userId?.toString() === userId?.toString()) || (r.userId?._id?.toString() === userId?.toString()));
                             if (existingIndex !== -1) {
                                 if (reactions[existingIndex].emoji === emoji) {
                                     reactions.splice(existingIndex, 1);
@@ -766,7 +766,7 @@ const Dashboard = () => {
                                                  </div>
 
                                                  {showReactionPicker === _id && (
-                                                     <div className={`absolute ${isMine ? '-left-48' : '-right-48'} -top-8 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-xl p-1 flex gap-1 z-50 animate-in zoom-in-50 duration-200`}>
+                                                     <div className={`absolute ${isMine ? 'right-full mr-2' : 'left-full ml-2'} -top-8 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-xl p-1 flex gap-1 z-50 animate-in zoom-in-50 duration-200`}>
                                                          {REACTION_EMOJIS.map(emoji => (
                                                              <div 
                                                                  key={emoji} 
