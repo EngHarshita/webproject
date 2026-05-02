@@ -184,6 +184,35 @@ app.put('/api/message/pin/:id', authenticateToken, async (req, res) => {
     }
 });
 
+app.put('/api/message/react/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, emoji } = req.body;
+        const message = await Messages.findById(id);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+
+        // Toggle reaction: if user already reacted with SAME emoji, remove it. 
+        // If they reacted with DIFFERENT emoji, update it.
+        const existingReactionIndex = message.reactions.findIndex(r => r.userId.toString() === userId.toString());
+        
+        if (existingReactionIndex !== -1) {
+            if (message.reactions[existingReactionIndex].emoji === emoji) {
+                message.reactions.splice(existingReactionIndex, 1); // Remove
+            } else {
+                message.reactions[existingReactionIndex].emoji = emoji; // Update
+            }
+        } else {
+            message.reactions.push({ userId, emoji }); // Add new
+        }
+
+        await message.save();
+        res.status(200).json({ message: 'Reaction updated', reactions: message.reactions });
+    } catch (error) {
+        console.error('Error in PUT /api/message/react:', error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 app.get('/api/message/:conversationId', authenticateToken, async (req, res) => {
     try {
         const { conversationId } = req.params;
@@ -205,6 +234,7 @@ app.get('/api/message/:conversationId', authenticateToken, async (req, res) => {
                 fileUrl: msg.fileUrl,
                 fileName: msg.fileName,
                 location: msg.location,
+                reactions: msg.reactions || [],
                 _id: msg._id
             };
         }));
@@ -414,6 +444,12 @@ io.on('connection', socket => {
     socket.on('stopTyping', ({ receiverId, senderId }) => {
         if (receiverId) {
             socket.to(receiverId).emit('hideTyping', { senderId });
+        }
+    });
+
+    socket.on('reactMessage', ({ messageId, userId, emoji, receiverId }) => {
+        if (receiverId) {
+            socket.to(receiverId).emit('messageReaction', { messageId, userId, emoji });
         }
     });
 

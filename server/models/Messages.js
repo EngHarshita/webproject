@@ -38,7 +38,11 @@ const messageSchema = mongoose.Schema({
     isPinned: {
         type: Boolean,
         default: false
-    }
+    },
+    reactions: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        emoji: String
+    }]
 });
 
 const Messages = mongoose.model('Message', messageSchema);
